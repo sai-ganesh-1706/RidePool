@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "RidePool",
+    "slug": "ridepool",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ridepool",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.ridepool.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.ridepool.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "expo-status-bar"
+    ]
+  }
+}

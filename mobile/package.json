@@ -1,0 +1,28 @@
+{
+  "name": "ridepool-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "setup": "expo install expo-router expo-linking expo-constants expo-status-bar expo-secure-store react-native-screens react-native-safe-area-context @react-native-community/datetimepicker @expo/vector-icons && npm install axios socket.io-client",
+    "build:apk": "eas build -p android --profile preview"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/datetimepicker": "9.1.0",
+    "axios": "^1.21.0",
+    "expo": "^57.0.0",
+    "expo-constants": "~57.0.22",
+    "expo-linking": "~57.0.13",
+    "expo-router": "~57.0.29",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "socket.io-client": "^4.8.4"
+  }
+}
