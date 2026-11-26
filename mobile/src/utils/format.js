@@ -19,7 +19,13 @@ export function formatDay(value) {
 
 export const formatDateTime = (value) => `${formatDay(value)}, ${formatTime(value)}`;
 
-export const formatRupees = (amount) => `₹${amount}`;
+export const formatRupees = (amount) => `₹${Number(amount).toLocaleString('en-IN')}`;
+
+/** Mirrors the server: riders pay an equal whole-rupee share, the organiser covers the leftover rupees. */
+export function splitFare(totalFare, riderCount) {
+  const riderShare = Math.floor(totalFare / riderCount);
+  return { riderShare, creatorShare: totalFare - riderShare * (riderCount - 1) };
+}
 
 export const initialOf = (name = '') => name.trim().charAt(0).toUpperCase() || '?';
 

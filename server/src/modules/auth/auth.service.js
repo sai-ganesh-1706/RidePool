@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { env } from '../../config/env.js';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { invalidateCachedUser } from '../../utils/authCache.js';
 import { signToken } from '../../utils/token.js';
 
 const BCRYPT_ROUNDS = 10;
@@ -49,6 +50,7 @@ export async function login({ email, password }) {
   // ADMIN_EMAILS is the source of truth for admin access, so changing it takes effect on next login.
   if (user.role !== roleFor(email)) {
     user = await prisma.user.update({ where: { id: user.id }, data: { role: roleFor(email) } });
+    invalidateCachedUser(user.id);
   }
   return { user: toPublicUser(user), token: signToken(user.id) };
 }

@@ -42,6 +42,10 @@ export const complete = asyncHandler(async (req, res) => {
   res.json({ ride: await ridesService.completeRide(req.params.id, req.user.id, req.body.totalFare) });
 });
 
+export const updateFare = asyncHandler(async (req, res) => {
+  res.json({ ride: await ridesService.updateFare(req.params.id, req.user.id, req.body.totalFare) });
+});
+
 export const setPayment = asyncHandler(async (req, res) => {
   const { id, userId } = req.params;
   res.json({ ride: await ridesService.setPaymentStatus(id, req.user.id, userId, req.body.status) });

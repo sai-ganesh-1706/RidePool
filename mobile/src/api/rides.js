@@ -13,6 +13,7 @@ export const ridesApi = {
   cancel: (id) => client.post(`/rides/${id}/cancel`).then(unwrapRide),
   setDriver: (id, driverId) => client.patch(`/rides/${id}/driver`, { driverId }).then(unwrapRide),
   complete: (id, totalFare) => client.post(`/rides/${id}/complete`, { totalFare }).then(unwrapRide),
+  updateFare: (id, totalFare) => client.patch(`/rides/${id}/fare`, { totalFare }).then(unwrapRide),
   setPayment: (id, userId, status) =>
     client.patch(`/rides/${id}/members/${userId}/payment`, { status }).then(unwrapRide),
   messages: (id) => client.get(`/rides/${id}/messages`).then((r) => r.data.messages),

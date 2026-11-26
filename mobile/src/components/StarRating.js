@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { useThemedStyles } from '../theme';
 
 /** Read-only when `onChange` is omitted. */
 export default function StarRating({ value, onChange, size = 16, count }) {
+  const { colors, styles } = useThemedStyles(createStyles);
   return (
     <View style={styles.row}>
       {[1, 2, 3, 4, 5].map((star) => {
@@ -25,7 +26,7 @@ export default function StarRating({ value, onChange, size = 16, count }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   count: { marginLeft: 6, fontSize: 13, color: colors.muted },
 });

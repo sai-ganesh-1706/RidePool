@@ -1,6 +1,6 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing, useThemedStyles } from '../theme';
 import { formatTime } from '../utils/format';
 import Chip from './Chip';
 
@@ -8,6 +8,7 @@ const isSameDay = (a, b) => a.toDateString() === b.toDateString();
 
 /** Departure picker: Today / Tomorrow chips + a time selector. */
 export default function DateTimeField({ label, value, onChange }) {
+  const { styles } = useThemedStyles(createStyles);
   const setDayOffset = (offset) => {
     const next = new Date();
     next.setDate(next.getDate() + offset);
@@ -48,7 +49,7 @@ export default function DateTimeField({ label, value, onChange }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   wrapper: { gap: spacing.xs },
   label: { fontSize: 13, fontWeight: '600', color: colors.muted },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -58,5 +59,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.primarySoft,
   },
-  timeText: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  timeText: { fontSize: 14, fontWeight: '700', color: colors.primaryText },
 });

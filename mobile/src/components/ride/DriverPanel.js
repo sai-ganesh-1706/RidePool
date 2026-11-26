@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../../theme';
+import { radius, spacing, useThemedStyles } from '../../theme';
 import Avatar from '../Avatar';
 import Button from '../Button';
 import Card from '../Card';
@@ -8,9 +8,10 @@ import { callNumber } from '../DriverCard';
 import StarRating from '../StarRating';
 
 function Notice({ icon, text }) {
+  const { colors, styles } = useThemedStyles(createStyles);
   return (
     <View style={styles.notice}>
-      <Ionicons name={icon} size={18} color={colors.primary} />
+      <Ionicons name={icon} size={18} color={colors.primaryText} />
       <Text style={styles.noticeText}>{text}</Text>
     </View>
   );
@@ -18,6 +19,7 @@ function Notice({ icon, text }) {
 
 /** Shows the assigned driver (with a call button) to riders once the ride is matched. */
 export default function DriverPanel({ ride, onChangeDriver }) {
+  const { styles } = useThemedStyles(createStyles);
   const { driver, status, isMember, isCreator } = ride;
   const isActive = status === 'OPEN' || status === 'MATCHED';
 
@@ -28,7 +30,7 @@ export default function DriverPanel({ ride, onChangeDriver }) {
   if (driver) {
     return (
       <Card>
-        <Text style={styles.heading}>Your auto driver</Text>
+        <Text style={styles.heading}>Your driver</Text>
         <View style={styles.row}>
           <Avatar name={driver.name} size={52} />
           <View style={styles.info}>
@@ -65,7 +67,7 @@ export default function DriverPanel({ ride, onChangeDriver }) {
   return null;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   heading: { fontSize: 13, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
   row: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   info: { flex: 1, gap: 2 },
@@ -80,5 +82,5 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: radius.md,
   },
-  noticeText: { flex: 1, fontSize: 14, color: colors.primary },
+  noticeText: { flex: 1, fontSize: 14, color: colors.primaryText },
 });

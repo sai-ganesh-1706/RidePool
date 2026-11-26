@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing } from '../theme';
+import { spacing, useThemedStyles } from '../theme';
 import Avatar from './Avatar';
 import Badge from './Badge';
 import Button from './Button';
@@ -10,6 +10,7 @@ import StarRating from './StarRating';
 export const callNumber = (phone) => Linking.openURL(`tel:${phone}`);
 
 export default function DriverCard({ driver }) {
+  const { styles } = useThemedStyles(createStyles);
   const router = useRouter();
 
   return (
@@ -35,7 +36,7 @@ export default function DriverCard({ driver }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   info: { flex: 1, gap: 2 },
   name: { fontSize: 16, fontWeight: '700', color: colors.text },

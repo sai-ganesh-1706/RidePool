@@ -8,7 +8,10 @@ const MATCH_WINDOW_MS = 30 * 60 * 1000;
 const DEPARTED_GRACE_MS = 15 * 60 * 1000;
 const MIN_RIDERS_FOR_MATCH = 2;
 const MAX_RIDES_CREATED_PER_DAY = 5;
-const TX_OPTIONS = { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 20_000 };
+// A row lock on the ride (see `fetchRideForUpdate`) already serialises concurrent join/leave/complete
+// calls, so the much slower SERIALIZABLE isolation level (which also aborts with retryable errors
+// under load) isn't needed.
+const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 };
 
 // ---------- helpers ----------
 
@@ -16,6 +19,22 @@ async function fetchRide(id, db = prisma) {
   const ride = await db.ride.findUnique({ where: { id }, include: RIDE_INCLUDE });
   if (!ride) throw ApiError.notFound('Ride not found');
   return ride;
+}
+
+/** Locks the ride row until the surrounding transaction ends, then loads it. */
+async function fetchRideForUpdate(id, tx) {
+  await tx.$queryRaw`SELECT id FROM rides WHERE id = ${id} FOR UPDATE`;
+  return fetchRide(id, tx);
+}
+
+/**
+ * Splits a fare so the shares add up to exactly the total paid.
+ * Riders pay an equal whole-rupee share; the organiser (who paid the driver) covers the few
+ * leftover rupees, so nobody is ever asked for more than the real fare in total.
+ */
+export function splitFare(totalFare, riderCount) {
+  const riderShare = Math.floor(totalFare / riderCount);
+  return { riderShare, creatorShare: totalFare - riderShare * (riderCount - 1) };
 }
 
 const assertCreator = (ride, userId) => {
@@ -135,7 +154,7 @@ export async function createRide(userId, input) {
 
 export async function joinRide(rideId, userId) {
   await prisma.$transaction(async (tx) => {
-    const ride = await fetchRide(rideId, tx);
+    const ride = await fetchRideForUpdate(rideId, tx);
     assertActive(ride);
     assertNotDeparted(ride);
 
@@ -157,7 +176,7 @@ export async function joinRide(rideId, userId) {
 
 export async function leaveRide(rideId, userId) {
   await prisma.$transaction(async (tx) => {
-    const ride = await fetchRide(rideId, tx);
+    const ride = await fetchRideForUpdate(rideId, tx);
     assertActive(ride);
 
     if (ride.creatorId === userId) {
@@ -181,8 +200,12 @@ export async function cancelRide(rideId, userId) {
   const ride = await fetchRide(rideId);
   assertCreator(ride, userId);
   assertActive(ride);
-  await prisma.ride.update({ where: { id: rideId }, data: { status: 'CANCELLED' } });
-  return getRide(rideId, userId);
+  const updated = await prisma.ride.update({
+    where: { id: rideId },
+    data: { status: 'CANCELLED' },
+    include: RIDE_INCLUDE,
+  });
+  return serializeRide(updated, userId);
 }
 
 export async function setRideDriver(rideId, userId, driverId) {
@@ -196,31 +219,63 @@ export async function setRideDriver(rideId, userId, driverId) {
   });
   if (!driver) throw ApiError.badRequest('Choose a verified driver');
 
-  await prisma.ride.update({ where: { id: rideId }, data: { driverId } });
-  return getRide(rideId, userId);
+  const updated = await prisma.ride.update({ where: { id: rideId }, data: { driverId }, include: RIDE_INCLUDE });
+  return serializeRide(updated, userId);
+}
+
+/** Writes each rider's share for `totalFare`; the organiser's own share is settled by definition. */
+async function applyFareSplit(tx, ride, totalFare) {
+  if (totalFare < ride.members.length) {
+    throw ApiError.badRequest('The fare must be at least ₹1 per rider');
+  }
+  const { riderShare, creatorShare } = splitFare(totalFare, ride.members.length);
+
+  await tx.rideMember.updateMany({
+    where: { rideId: ride.id, status: 'JOINED', userId: { not: ride.creatorId } },
+    data: { fareShare: riderShare, paymentStatus: 'PENDING' },
+  });
+  // The creator paid the driver up front, so their own share is already paid.
+  await tx.rideMember.update({
+    where: { rideId_userId: { rideId: ride.id, userId: ride.creatorId } },
+    data: { fareShare: creatorShare, paymentStatus: 'PAID' },
+  });
 }
 
 export async function completeRide(rideId, userId, totalFare) {
   await prisma.$transaction(async (tx) => {
-    const ride = await fetchRide(rideId, tx);
+    const ride = await fetchRideForUpdate(rideId, tx);
     assertCreator(ride, userId);
     assertActive(ride);
+    if (ride.members.length < MIN_RIDERS_FOR_MATCH) {
+      throw ApiError.badRequest('A fare can only be split once another student has joined');
+    }
 
-    const fareShare = Math.ceil(totalFare / ride.members.length);
-
-    await tx.rideMember.updateMany({
-      where: { rideId, status: 'JOINED' },
-      data: { fareShare, paymentStatus: 'PENDING' },
-    });
-    // The creator paid the driver, so their own share is settled by definition.
-    await tx.rideMember.update({
-      where: { rideId_userId: { rideId, userId } },
-      data: { paymentStatus: 'PAID' },
-    });
+    await applyFareSplit(tx, ride, totalFare);
     await tx.ride.update({ where: { id: rideId }, data: { status: 'COMPLETED', totalFare } });
     if (ride.driverId) {
       await tx.driver.update({ where: { id: ride.driverId }, data: { totalRides: { increment: 1 } } });
     }
+  }, TX_OPTIONS);
+
+  return getRide(rideId, userId);
+}
+
+/**
+ * Lets the organiser correct a mistyped fare after completing the ride.
+ * Only allowed while no other rider has been marked as paid, so nobody's recorded payment
+ * is silently invalidated.
+ */
+export async function updateFare(rideId, userId, totalFare) {
+  await prisma.$transaction(async (tx) => {
+    const ride = await fetchRideForUpdate(rideId, tx);
+    assertCreator(ride, userId);
+    if (ride.status !== 'COMPLETED') throw ApiError.conflict('The fare can only be edited after the ride is completed');
+    if (ride.members.some((member) => member.userId !== ride.creatorId && member.paymentStatus === 'PAID')) {
+      throw ApiError.conflict('Some riders are already marked as paid, so the fare can no longer be changed');
+    }
+
+    await applyFareSplit(tx, ride, totalFare);
+    await tx.ride.update({ where: { id: rideId }, data: { totalFare } });
   }, TX_OPTIONS);
 
   return getRide(rideId, userId);

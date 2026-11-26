@@ -1,13 +1,21 @@
 import { Stack } from 'expo-router';
+import { useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { warmUpServer } from '../src/api/client';
 import { Loading } from '../src/components/StateViews';
+import { ToastProvider } from '../src/components/Toast';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
-import { stackScreenOptions } from '../src/theme';
+import { makeStackScreenOptions, ThemeProvider, useTheme } from '../src/theme';
+
+// Start waking the (possibly sleeping) API immediately, in parallel with restoring the saved session.
+warmUpServer();
 
 /** Role-based routing: the same login screen leads students and admins to different areas. */
 function RootNavigator() {
   const { user, initializing } = useAuth();
+  const { colors } = useTheme();
+  const screenOptions = useMemo(() => makeStackScreenOptions(colors), [colors]);
 
   if (initializing) return <Loading />;
 
@@ -15,7 +23,7 @@ function RootNavigator() {
   const isStudent = Boolean(user) && !isAdmin;
 
   return (
-    <Stack screenOptions={stackScreenOptions}>
+    <Stack screenOptions={screenOptions}>
       <Stack.Protected guard={isStudent}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="ride/create" options={{ title: 'New ride' }} />
@@ -39,10 +47,14 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <StatusBar style="auto" />
+            <RootNavigator />
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

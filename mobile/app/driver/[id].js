@@ -13,13 +13,14 @@ import StarRating from '../../src/components/StarRating';
 import { ErrorState, Loading } from '../../src/components/StateViews';
 import { useAuth } from '../../src/context/AuthContext';
 import useApi from '../../src/hooks/useApi';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useThemedStyles } from '../../src/theme';
 import { formatDay } from '../../src/utils/format';
 
 export default function DriverDetailScreen() {
+  const { styles } = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams();
   const { user } = useAuth();
-  const { data: driver, loading, error, reload } = useApi(() => driversApi.get(id), [id]);
+  const { data: driver, loading, error, reload } = useApi(() => driversApi.get(id), [id], { cacheKey: `driver:${id}` });
   const [verifying, setVerifying] = useState(false);
 
   if (loading && !driver) return <Loading />;
@@ -78,7 +79,7 @@ export default function DriverDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   info: { flex: 1, gap: 2 },
   name: { fontSize: 20, fontWeight: '800', color: colors.text },

@@ -8,11 +8,12 @@ import Chip from '../../src/components/Chip';
 import Screen from '../../src/components/Screen';
 import TextField from '../../src/components/TextField';
 import { useAuth } from '../../src/context/AuthContext';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useThemedStyles } from '../../src/theme';
 
 const VEHICLE_TYPES = ['AUTO', 'CAB', 'TEMPO'];
 
 export default function AddDriverScreen() {
+  const { styles } = useThemedStyles(createStyles);
   const router = useRouter();
   const { user } = useAuth();
   const [form, setForm] = useState({ name: '', phone: '', vehicleNumber: '', vehicleType: 'AUTO' });
@@ -40,9 +41,10 @@ export default function AddDriverScreen() {
       {user.role !== 'ADMIN' && (
         <Text style={styles.note}>New drivers are reviewed by an admin before others can see them.</Text>
       )}
-      <TextField label="Driver name" value={form.name} onChangeText={set('name')} />
+      <TextField label="Driver name" value={form.name} onChangeText={set('name')} autoCapitalize="words" />
       <TextField label="Phone number" value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
       <TextField label="Vehicle number (optional)" value={form.vehicleNumber} onChangeText={set('vehicleNumber')} autoCapitalize="characters" />
+      <Text style={styles.typeLabel}>Vehicle type</Text>
       <View style={styles.types}>
         {VEHICLE_TYPES.map((type) => (
           <Chip key={type} label={type.charAt(0) + type.slice(1).toLowerCase()} selected={form.vehicleType === type} onPress={() => set('vehicleType')(type)} />
@@ -53,7 +55,8 @@ export default function AddDriverScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  note: { fontSize: 14, color: colors.muted },
+const createStyles = (colors) => StyleSheet.create({
+  note: { fontSize: 14, color: colors.muted, backgroundColor: colors.primarySoft, padding: spacing.md, borderRadius: 12, overflow: 'hidden' },
+  typeLabel: { fontSize: 13, fontWeight: '600', color: colors.textSoft, marginBottom: -spacing.sm },
   types: { flexDirection: 'row', gap: spacing.sm },
 });

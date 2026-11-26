@@ -6,6 +6,15 @@ const client = axios.create({
   timeout: 45000, // free hosting can take a while to wake up
 });
 
+/**
+ * Free hosting puts the API to sleep when idle, and the first request then waits for it to boot.
+ * Pinging /health the moment the app opens starts that wake-up while the user is still on the login
+ * screen, so the first real tap is fast. `db=1` also wakes the database.
+ */
+export const warmUpServer = () => {
+  axios.get(`${API_URL}/health`, { params: { db: 1 }, timeout: 60000 }).catch(() => {});
+};
+
 let onUnauthorized = null;
 
 export const setAuthToken = (token) => {

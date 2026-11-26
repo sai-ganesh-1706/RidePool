@@ -1,22 +1,35 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { driversApi } from '../../src/api/drivers';
 import DriverCard from '../../src/components/DriverCard';
 import { EmptyState, ErrorState, Loading } from '../../src/components/StateViews';
-import TextField from '../../src/components/TextField';
 import useApi from '../../src/hooks/useApi';
-import { colors, spacing } from '../../src/theme';
+import { radius, spacing, useThemedStyles } from '../../src/theme';
+
+const renderDriver = ({ item }) => <DriverCard driver={item} />;
+const driverKey = (driver) => driver.id;
 
 export default function DriversScreen() {
+  const { colors, styles } = useThemedStyles(createStyles);
   const [query, setQuery] = useState('');
-  const { data, loading, error, refreshing, refresh, reload } = useApi(() => driversApi.list(), []);
+  const { data, loading, error, refreshing, refresh, reload } = useApi(() => driversApi.list(), [], { cacheKey: 'drivers' });
 
   const drivers = (data ?? []).filter((driver) => driver.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   return (
     <View style={styles.container}>
       <View style={styles.search}>
-        <TextField placeholder="Search drivers" value={query} onChangeText={setQuery} />
+        <Ionicons name="search" size={18} color={colors.faint} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search drivers"
+          placeholderTextColor={colors.faint}
+          value={query}
+          onChangeText={setQuery}
+          returnKeyType="search"
+          autoCorrect={false}
+        />
       </View>
 
       {loading && !data ? (
@@ -26,11 +39,14 @@ export default function DriversScreen() {
       ) : (
         <FlatList
           data={drivers}
-          keyExtractor={(driver) => driver.id}
-          renderItem={({ item }) => <DriverCard driver={item} />}
+          keyExtractor={driverKey}
+          renderItem={renderDriver}
           contentContainerStyle={styles.list}
           refreshing={refreshing}
           onRefresh={refresh}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState icon="call-outline" title="No drivers found" message="Add a trusted driver with the + button above." />
           }
@@ -40,8 +56,20 @@ export default function DriversScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  search: { padding: spacing.lg },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md, flexGrow: 1 },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    margin: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: colors.text },
+  list: { padding: spacing.lg, gap: spacing.md, flexGrow: 1 },
 });

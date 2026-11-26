@@ -8,9 +8,10 @@ import Card from '../../src/components/Card';
 import { callNumber } from '../../src/components/DriverCard';
 import { EmptyState, ErrorState, Loading } from '../../src/components/StateViews';
 import useApi from '../../src/hooks/useApi';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useThemedStyles } from '../../src/theme';
 
 function PendingDriverCard({ driver, busy, onVerify, onReject }) {
+  const { styles } = useThemedStyles(createStyles);
   return (
     <Card>
       <View style={styles.row}>
@@ -34,16 +35,17 @@ function PendingDriverCard({ driver, busy, onVerify, onReject }) {
 }
 
 export default function AdminDashboardScreen() {
-  const { data, loading, error, refreshing, refresh, reload } = useApi(() => driversApi.list(), []);
+  const { styles } = useThemedStyles(createStyles);
+  const { data, loading, error, refreshing, refresh, reload, setData } = useApi(() => driversApi.list(), [], { cacheKey: 'drivers' });
   const [busyId, setBusyId] = useState(null);
 
   const pending = (data ?? []).filter((driver) => !driver.isVerified);
 
-  const run = async (driver, action) => {
+  const run = async (driver, action, apply) => {
     setBusyId(driver.id);
     try {
       await action(driver.id);
-      await reload();
+      setData((list) => apply(list ?? [])); // update the list now instead of re-fetching it
     } catch (err) {
       Alert.alert('Action failed', getErrorMessage(err));
     } finally {
@@ -54,7 +56,7 @@ export default function AdminDashboardScreen() {
   const confirmReject = (driver) =>
     Alert.alert('Reject driver?', `${driver.name} will be removed from the directory.`, [
       { text: 'Back', style: 'cancel' },
-      { text: 'Reject', style: 'destructive', onPress: () => run(driver, driversApi.reject) },
+      { text: 'Reject', style: 'destructive', onPress: () => run(driver, driversApi.reject, (list) => list.filter((d) => d.id !== driver.id)) },
     ]);
 
   if (loading && !data) return <Loading />;
@@ -78,7 +80,7 @@ export default function AdminDashboardScreen() {
         <PendingDriverCard
           driver={item}
           busy={busyId === item.id}
-          onVerify={() => run(item, driversApi.verify)}
+          onVerify={() => run(item, driversApi.verify, (list) => list.map((d) => (d.id === item.id ? { ...d, isVerified: true } : d)))}
           onReject={() => confirmReject(item)}
         />
       )}
@@ -86,7 +88,7 @@ export default function AdminDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   list: { backgroundColor: colors.bg },
   content: { padding: spacing.lg, gap: spacing.md, flexGrow: 1 },
   header: { fontSize: 14, fontWeight: '600', color: colors.muted },

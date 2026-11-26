@@ -1,28 +1,30 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing } from '../../theme';
+import { spacing, useThemedStyles } from '../../theme';
 import { formatRupees } from '../../utils/format';
 import Avatar from '../Avatar';
 import Badge from '../Badge';
 import Button from '../Button';
 import Card from '../Card';
 
-export default function MemberList({ ride, busy, onTogglePayment }) {
+export default function MemberList({ ride, busyUserId, onTogglePayment }) {
+  const { styles } = useThemedStyles(createStyles);
   const completed = ride.status === 'COMPLETED';
 
   return (
     <Card>
       <Text style={styles.heading}>
-        Riders ({ride.members.length}/{ride.maxRiders})
+        Riders · {ride.members.length}/{ride.maxRiders}
       </Text>
-      {ride.members.map((member) => (
-        <View key={member.userId} style={styles.row}>
+      {ride.members.map((member, index) => (
+        <View key={member.userId} style={[styles.row, index > 0 && styles.divider]}>
           <Avatar name={member.name} />
           <View style={styles.info}>
-            <Text style={styles.name}>
+            <Text style={styles.name} numberOfLines={1}>
               {member.name}
-              {member.isCreator ? '  · organiser' : ''}
             </Text>
-            {member.hostelBlock ? <Text style={styles.sub}>{member.hostelBlock}</Text> : null}
+            <Text style={styles.sub} numberOfLines={1}>
+              {[member.isCreator ? 'Organiser' : null, member.hostelBlock].filter(Boolean).join(' · ') || 'Rider'}
+            </Text>
           </View>
 
           {completed && (
@@ -32,9 +34,9 @@ export default function MemberList({ ride, busy, onTogglePayment }) {
                 <Button
                   title={member.paymentStatus === 'PAID' ? 'Paid ✓' : 'Mark paid'}
                   variant={member.paymentStatus === 'PAID' ? 'secondary' : 'primary'}
-                  disabled={busy}
+                  disabled={busyUserId === member.userId}
+                  small
                   onPress={() => onTogglePayment(member)}
-                  style={styles.smallButton}
                 />
               ) : (
                 <Badge
@@ -50,13 +52,13 @@ export default function MemberList({ ride, busy, onTogglePayment }) {
   );
 }
 
-const styles = StyleSheet.create({
-  heading: { fontSize: 13, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 4 },
+const createStyles = (colors) => StyleSheet.create({
+  heading: { fontSize: 12, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  divider: { borderTopWidth: 1, borderTopColor: colors.border },
   info: { flex: 1 },
   name: { fontSize: 15, fontWeight: '600', color: colors.text },
   sub: { fontSize: 13, color: colors.muted },
-  payment: { alignItems: 'flex-end', gap: 4 },
-  share: { fontSize: 15, fontWeight: '700', color: colors.text },
-  smallButton: { minHeight: 34, paddingHorizontal: spacing.md },
+  payment: { alignItems: 'flex-end', gap: 6 },
+  share: { fontSize: 15, fontWeight: '800', color: colors.text },
 });

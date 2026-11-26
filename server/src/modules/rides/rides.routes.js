@@ -30,6 +30,7 @@ router.post('/:id/leave', withId, controller.leave);
 router.post('/:id/cancel', withId, controller.cancel);
 router.patch('/:id/driver', withId, validate(setDriverSchema), controller.setDriver);
 router.post('/:id/complete', withId, validate(completeRideSchema), controller.complete);
+router.patch('/:id/fare', withId, validate(completeRideSchema), controller.updateFare);
 router.patch(
   '/:id/members/:userId/payment',
   validate(paymentParams, 'params'),

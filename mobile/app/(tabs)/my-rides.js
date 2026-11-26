@@ -5,13 +5,16 @@ import Chip from '../../src/components/Chip';
 import RideCard from '../../src/components/RideCard';
 import { EmptyState, ErrorState, Loading } from '../../src/components/StateViews';
 import useApi from '../../src/hooks/useApi';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useThemedStyles } from '../../src/theme';
 
 const isUpcoming = (ride) => ride.status === 'OPEN' || ride.status === 'MATCHED';
+const renderRide = ({ item }) => <RideCard ride={item} />;
+const rideKey = (ride) => ride.id;
 
 export default function MyRidesScreen() {
+  const { styles } = useThemedStyles(createStyles);
   const [tab, setTab] = useState('upcoming');
-  const { data, loading, error, refreshing, refresh, reload } = useApi(() => ridesApi.mine(), []);
+  const { data, loading, error, refreshing, refresh, reload } = useApi(() => ridesApi.mine(), [], { cacheKey: 'rides:mine' });
 
   const rides = (data ?? [])
     .filter((ride) => (tab === 'upcoming' ? isUpcoming(ride) : !isUpcoming(ride)))
@@ -31,11 +34,12 @@ export default function MyRidesScreen() {
       ) : (
         <FlatList
           data={rides}
-          keyExtractor={(ride) => ride.id}
-          renderItem={({ item }) => <RideCard ride={item} />}
+          keyExtractor={rideKey}
+          renderItem={renderRide}
           contentContainerStyle={styles.list}
           refreshing={refreshing}
           onRefresh={refresh}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState
               icon="time-outline"
@@ -49,8 +53,8 @@ export default function MyRidesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  tabs: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md, flexGrow: 1 },
+  tabs: { flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, paddingBottom: spacing.sm },
+  list: { padding: spacing.lg, gap: spacing.md, flexGrow: 1 },
 });

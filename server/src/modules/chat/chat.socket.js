@@ -7,8 +7,8 @@ const roomName = (rideId) => `ride:${rideId}`;
 const withAck = (socket, handler) => async (payload, ack) => {
   const reply = typeof ack === 'function' ? ack : () => {};
   try {
-    await handler(payload ?? {}, socket.data.userId);
-    reply({ ok: true });
+    const data = await handler(payload ?? {}, socket.data.userId);
+    reply({ ok: true, data });
   } catch (err) {
     reply({ ok: false, error: err.status ? err.message : 'Something went wrong' });
   }
@@ -38,6 +38,7 @@ export function registerChatSocket(io) {
       withAck(socket, async ({ rideId, content }, userId) => {
         const message = await sendMessage(rideId, userId, content);
         io.to(roomName(rideId)).emit('new_message', message);
+        return message; // also returned in the ack so the sender's UI can confirm instantly
       }),
     );
   });

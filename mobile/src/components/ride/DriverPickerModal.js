@@ -1,21 +1,23 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { driversApi } from '../../api/drivers';
 import useApi from '../../hooks/useApi';
-import { colors, spacing } from '../../theme';
+import { spacing, useThemedStyles } from '../../theme';
 import Avatar from '../Avatar';
 import SheetModal from '../SheetModal';
 import StarRating from '../StarRating';
 import { EmptyState, Loading } from '../StateViews';
 
 function PickerList({ onPick }) {
-  const { data, loading } = useApi(() => driversApi.list(), []);
+  const { styles } = useThemedStyles(createStyles);
+  const { data, loading } = useApi(() => driversApi.list(), [], { cacheKey: 'drivers' });
   const drivers = (data ?? []).filter((driver) => driver.isVerified);
 
-  if (loading) return <Loading />;
+  if (loading && !data) return <Loading />;
   if (drivers.length === 0) return <EmptyState title="No verified drivers yet" />;
 
   return (
     <FlatList
+      style={styles.list}
       data={drivers}
       keyExtractor={(driver) => driver.id}
       renderItem={({ item }) => (
@@ -39,8 +41,9 @@ export default function DriverPickerModal({ visible, onClose, onPick }) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+const createStyles = (colors) => StyleSheet.create({
+  list: { maxHeight: 360 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   info: { flex: 1, gap: 2 },
   name: { fontSize: 16, fontWeight: '600', color: colors.text },
 });

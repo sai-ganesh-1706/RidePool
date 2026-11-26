@@ -4,11 +4,11 @@
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://YOUR-RENDER-SERVICE.onrender.com" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://ridepool-api.onrender.com" }
     },
     "production": {
       "android": { "buildType": "app-bundle" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://YOUR-RENDER-SERVICE.onrender.com" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://ridepool-api.onrender.com" }
     }
   }
 }

@@ -1,16 +1,17 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius } from '../theme';
+import { radius, useTheme } from '../theme';
 
-const TONES = {
-  primary: { bg: colors.primarySoft, fg: colors.primary },
+const tonesFor = (colors) => ({
+  primary: { bg: colors.primarySoft, fg: colors.primaryText },
   success: { bg: colors.successSoft, fg: colors.success },
   warning: { bg: colors.warningSoft, fg: colors.warning },
   danger: { bg: colors.dangerSoft, fg: colors.danger },
   muted: { bg: colors.border, fg: colors.muted },
-};
+});
 
 export default function Badge({ label, tone = 'muted' }) {
-  const { bg, fg } = TONES[tone];
+  const { colors } = useTheme();
+  const { bg, fg } = tonesFor(colors)[tone];
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Text style={[styles.label, { color: fg }]}>{label}</Text>

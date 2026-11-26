@@ -8,18 +8,24 @@ import Chip from '../../src/components/Chip';
 import RideCard from '../../src/components/RideCard';
 import { EmptyState, ErrorState, Loading } from '../../src/components/StateViews';
 import useApi from '../../src/hooks/useApi';
-import { colors, radius, spacing } from '../../src/theme';
+import { radius, shadowStrong, spacing, useThemedStyles } from '../../src/theme';
+
+const renderRide = ({ item }) => <RideCard ride={item} />;
+const rideKey = (ride) => ride.id;
 
 export default function RideBoardScreen() {
+  const { colors, styles } = useThemedStyles(createStyles);
   const router = useRouter();
   const [toLocationId, setToLocationId] = useState(null);
 
-  const locations = useApi(() => locationsApi.list(), []);
-  const rides = useApi(() => ridesApi.list(toLocationId ? { toLocationId } : undefined), [toLocationId]);
+  const locations = useApi(() => locationsApi.list(), [], { cacheKey: 'locations' });
+  const rides = useApi(() => ridesApi.list(toLocationId ? { toLocationId } : undefined), [toLocationId], {
+    cacheKey: `rides:board:${toLocationId ?? 'all'}`,
+  });
 
   return (
     <View style={styles.container}>
-      <View>
+      <View style={styles.filterBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           <Chip label="All destinations" selected={!toLocationId} onPress={() => setToLocationId(null)} />
           {(locations.data ?? []).map((location) => (
@@ -40,41 +46,46 @@ export default function RideBoardScreen() {
       ) : (
         <FlatList
           data={rides.data}
-          keyExtractor={(ride) => ride.id}
-          renderItem={({ item }) => <RideCard ride={item} />}
+          keyExtractor={rideKey}
+          renderItem={renderRide}
           contentContainerStyle={styles.list}
           refreshing={rides.refreshing}
           onRefresh={rides.refresh}
+          initialNumToRender={6}
+          windowSize={7}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState title="No upcoming rides" message="Be the first — post where you’re headed and others can join." />
           }
         />
       )}
 
-      <Pressable style={styles.fab} onPress={() => router.push('/ride/create')}>
-        <Ionicons name="add" size={22} color="#fff" />
+      <Pressable style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]} onPress={() => router.push('/ride/create')}>
+        <Ionicons name="add" size={22} color={colors.onPrimary} />
         <Text style={styles.fabText}>New ride</Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  filters: { padding: spacing.lg, gap: spacing.sm },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: 96, gap: spacing.md, flexGrow: 1 },
+  filterBar: { backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
+  filters: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.sm },
+  list: { padding: spacing.lg, paddingBottom: 100, gap: spacing.md, flexGrow: 1 },
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: spacing.xl,
+    bottom: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: 15,
     borderRadius: radius.pill,
-    elevation: 4,
+    ...shadowStrong,
   },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  fabPressed: { transform: [{ scale: 0.97 }] },
+  fabText: { color: colors.onPrimary, fontWeight: '700', fontSize: 15 },
 });

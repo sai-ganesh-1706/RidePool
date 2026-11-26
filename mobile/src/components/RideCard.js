@@ -1,48 +1,65 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing } from '../theme';
+import { radius, spacing, useThemedStyles } from '../theme';
 import { formatDateTime, rideStatusMeta } from '../utils/format';
 import Badge from './Badge';
 import Card from './Card';
+import RouteTimeline from './RouteTimeline';
 
-export default function RideCard({ ride }) {
+function RideCard({ ride }) {
+  const { colors, styles } = useThemedStyles(createStyles);
   const router = useRouter();
   const status = rideStatusMeta(ride);
   const riders = ride.maxRiders - ride.seatsLeft;
 
   return (
-    <Pressable onPress={() => router.push(`/ride/${ride.id}`)}>
-      <Card>
+    <Pressable onPress={() => router.push(`/ride/${ride.id}`)} style={({ pressed }) => pressed && styles.pressed}>
+      <Card style={styles.card}>
         <View style={styles.header}>
-          <View style={styles.route}>
-            <Text style={styles.place} numberOfLines={1}>{ride.from.name}</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.muted} />
-            <Text style={styles.place} numberOfLines={1}>{ride.to.name}</Text>
-          </View>
+          <RouteTimeline from={ride.from.name} to={ride.to.name} />
           <Badge label={status.label} tone={status.tone} />
         </View>
 
-        <View style={styles.meta}>
-          <Ionicons name="time-outline" size={16} color={colors.muted} />
-          <Text style={styles.metaText}>{formatDateTime(ride.departureTime)}</Text>
+        <View style={styles.footer}>
+          <View style={styles.meta}>
+            <Ionicons name="time-outline" size={16} color={colors.muted} />
+            <Text style={styles.metaText}>{formatDateTime(ride.departureTime)}</Text>
+          </View>
+          <View style={styles.meta}>
+            <Ionicons name="people-outline" size={16} color={colors.muted} />
+            <Text style={styles.metaText}>
+              {riders}/{ride.maxRiders}
+            </Text>
+          </View>
         </View>
-        <View style={styles.meta}>
-          <Ionicons name="people-outline" size={16} color={colors.muted} />
-          <Text style={styles.metaText}>
-            {riders}/{ride.maxRiders} riders · by {ride.creator.name}
-            {ride.isMember ? ' · You’re in' : ''}
-          </Text>
-        </View>
+
+        <Text style={styles.by} numberOfLines={1}>
+          by {ride.creator.name}
+          {ride.isMember ? '  ·  You’re in' : ''}
+        </Text>
       </Card>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+export default memo(RideCard);
+
+const createStyles = (colors) => StyleSheet.create({
+  card: { gap: spacing.md },
+  pressed: { opacity: 0.92 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
-  route: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  place: { fontSize: 16, fontWeight: '700', color: colors.text, flexShrink: 1 },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+  },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontSize: 14, color: colors.muted },
+  metaText: { fontSize: 14, fontWeight: '600', color: colors.textSoft },
+  by: { fontSize: 13, color: colors.muted },
 });
